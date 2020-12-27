@@ -52,7 +52,7 @@ familiesController.renameFamily = (req, res, next) => {
   // get new family name and existing family name from request body
   const { newName, family_name } = req.body;
   // check whether updated family name already exists
-  db.query('SELECT * FROM families WHERE (family_name = $1', [newName])
+  db.query('SELECT * FROM families WHERE (family_name = $1);', [newName])
     .then((data) => {
       if (data.rows.length) {
         res.locals.status = 'new family name already exists';
@@ -94,20 +94,20 @@ familiesController.addMember = (req, res, next) => {
   const { family_name, local_user } = req.body;
   // first queries - get family_id and user_id corresponding to input data
   // get _id from families table
-  const firstQuery1 = `SELECT _id FROM families WHERE (family_name = $1)`;
+  const firstQuery1 = `SELECT _id FROM families WHERE (family_name = $1);`;
   const firstQuery1Value = [family_name];
   db.query(firstQuery1, firstQuery1Value)
     .then((data) => {
       const family_id = data.rows[0]._id;
       // second portion of first query: get _id from local_users table
-      const firstQuery2 = `SELECT _id FROM local_users WHERE (username = $1)`;
+      const firstQuery2 = `SELECT _id FROM local_users WHERE (username = $1);`;
       const firstQuery2Value = [local_user];
       db.query(firstQuery2, firstQuery2Value).then((data2) => {
         const local_user_id = data2.rows[0]._id;
         // next query: check whether family already contains the specified member
         const newMemberInfo = [family_id, local_user_id];
         db.query(
-          `SELECT * FROM family_members WHERE (family_id = $1 AND local_user_id = $2)`,
+          `SELECT * FROM family_members WHERE (family_id = $1 AND local_user_id = $2);`,
           newMemberInfo
         ).then((data3) => {
           if (data3.rows.length) {
@@ -116,7 +116,7 @@ familiesController.addMember = (req, res, next) => {
             return next();
           } else {
             // final query: add member to family
-            const lastQuery = `INSERT INTO family_members (family_id, local_user_id) VALUES ($1, $2)`;
+            const lastQuery = `INSERT INTO family_members (family_id, local_user_id) VALUES ($1, $2);`;
             db.query(lastQuery, newMemberInfo).then(() => {
               res.locals.status = 'new member added';
               return next();
