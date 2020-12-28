@@ -44,22 +44,15 @@ familiesController.addFamily = (req, res, next) => {
           const values = [family_name, hashPassword];
         const queryString = `INSERT INTO families (family_name, family_password) VALUES ($1, $2)`;
         // query
-<<<<<<< HEAD
-        db.query(queryString, values)
-          .then((data) => {
-            res.locals.status = 'family created';
-            return next();
-          });
-=======
         db.query(queryString, values).then((data) => {
           res.locals.status = 'family created';
           res.locals.data = family_name;
           return next();
->>>>>>> fcca378d3412fda86d009b7c1b15c2a7dc5da38d
         });
-      };
-    })
-    .catch((err) => next({ err }));
+      });
+    }
+  })
+  .catch((err) => next({ err }));
 };
 
 // request to modify family name (update request)
@@ -105,22 +98,17 @@ familiesController.deleteFamily = (req, res, next) => {
 // +++ Methods to add/remove users from families +++
 // +++++++++++++++++++++++++++++++++++++++++++++++++
 
-// adds a user to a family - pass local_user and family_name
+// add to user to new family or existing family logged-in user belogns to - pass local_user and family_name
 familiesController.addMember = (req, res, next) => {
   // get data from body and put into variables - body will include family name, family password, and local username of user to add
-  const { family_name, family_password, local_user } = req.body;
+  const { family_name, local_user } = req.body;
   // first queries - get family_id and user_id corresponding to input data
   // get _id from families table
-  const firstQuery1 = `SELECT _id, family_password FROM families WHERE (family_name = $1)`;
+  const firstQuery1 = `SELECT _id FROM families WHERE (family_name = $1)`;
   const firstQuery1Value = [family_name];
   db.query(firstQuery1, firstQuery1Value)
     .then((data) => {
       const family_id = data.rows[0]._id;
-      // verify family password
-      bcrypt.compare(family_password, data.rows[0].family_password, (err, result) => {
-        if (result === true) res.locals.
-      })
-
       // second portion of first query: get _id from local_users table
       const firstQuery2 = `SELECT _id FROM local_users WHERE (username = $1)`;
       const firstQuery2Value = [local_user];
@@ -131,11 +119,11 @@ familiesController.addMember = (req, res, next) => {
         db.query(
           `SELECT * FROM family_members WHERE (family_id = $1 AND local_user_id = $2)`,
           newMemberInfo
-        ).then((data3) => {
-          if (data3.rows.length) {
-            // if user is already a family member, this will evalute to true
-            res.locals.status = 'member already in family';
-            return next();
+          ).then((data3) => {
+            if (data3.rows.length) {
+              // if user is already a family member, this will evalute to true
+              res.locals.status = 'member already in family';
+              return next();
           } else {
             // final query: add member to family
             const lastQuery = `INSERT INTO family_members (family_id, local_user_id) VALUES ($1, $2)`;
@@ -147,6 +135,55 @@ familiesController.addMember = (req, res, next) => {
           }
         });
       });
+    })
+    .catch((err) => next({ err }));
+  };
+
+// add self to an existing family - pass local_user, family_name, family_password
+familiesController.addSelf = (req, res, next) => {
+  // get data from body and put into variables - body will include family name, family password, and local username of user to add
+  const { family_name, family_password, local_user } = req.body;
+  // first queries - get family_id and user_id corresponding to input data
+  // get _id from families table
+  const firstQuery1 = `SELECT _id, family_password FROM families WHERE (family_name = $1)`;
+  const firstQuery1Value = [family_name];
+  db.query(firstQuery1, firstQuery1Value)
+    .then((data) => {
+      const family_id = data.rows[0]._id;
+      // verify family password
+      bcrypt.compare(family_password, data.rows[0].family_password, (err, result) => {
+        if (!result) {
+          res.locals.status = 'incorrect family password';
+          return next();
+        } else {
+          // second portion of first query: get _id from local_users table
+          const firstQuery2 = `SELECT _id FROM local_users WHERE (username = $1)`;
+          const firstQuery2Value = [local_user];
+          db.query(firstQuery2, firstQuery2Value).then((data2) => {
+            const local_user_id = data2.rows[0]._id;
+            // next query: check whether family already contains the specified member
+            const newMemberInfo = [family_id, local_user_id];
+            db.query(
+              `SELECT * FROM family_members WHERE (family_id = $1 AND local_user_id = $2)`,
+              newMemberInfo
+            ).then((data3) => {
+              if (data3.rows.length) {
+                // if user is already a family member, this will evalute to true
+                res.locals.status = 'member already in family';
+                return next();
+              } else {
+                // final query: add member to family
+                const lastQuery = `INSERT INTO family_members (family_id, local_user_id) VALUES ($1, $2)`;
+                db.query(lastQuery, newMemberInfo).then(() => {
+                  res.locals.status = 'new member added';
+                  res.locals.data = { family_name, local_user };
+                  return next();
+                });
+              }
+            });
+          });
+        }
+      })
     })
     .catch((err) => next({ err }));
 };

@@ -44,8 +44,14 @@ router.delete(
 // +++ Methods to add/remove users from families +++
 // +++++++++++++++++++++++++++++++++++++++++++++++++
 
-// request to add to a family
-router.post('/add-family-member', familiesController.addMember, (req, res) => {
+// request to add self to a new family or others to a family logged-in user is a member of (no pw needed)
+router.post('/add-family-member-to-existing', familiesController.addMember, (req, res) => {
+  const { data } = res.locals;
+  res.status(200).json(data);
+});
+
+// request to add self to an existing family
+router.post('/add-family-member', familiesController.addSelf, (req, res) => {
   const { data } = res.locals;
   res.status(200).json(data);
 });
